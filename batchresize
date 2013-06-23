@@ -1,0 +1,91 @@
+#!/usr/bin/env ruby
+require 'optparse'
+require 'logger'
+
+LOGGER = Logger.new($stdout)
+LOGGER.formatter = proc do |severity, datetime, progname, msg|
+  "##{Process.pid} #{severity}: #{msg}\n"
+end
+
+%w(rmagick xpool).each do |lib|
+  begin
+    require lib
+  rescue LoadError
+    LOGGER.fatal "#{lib} not found. Install with `gem install #{lib}`"
+    exit
+  end
+end
+
+
+options = {
+  :target => '',
+  :destination => '',
+  :size => '960x720',
+  :concurrency => 5,
+}
+
+optparse = OptionParser.new do |opts|
+  opts.on('-t', '--target DIR', 'Source directory that contains jpegs to be converted') do |dir|
+    options[:target] = dir
+    options[:target] << '/' if dir[-1] != '/'
+  end
+  
+  opts.on('-d', '--destination DIR', 'Directory to place images after resizing') do |dir|
+    options[:destination] = dir
+    options[:destination] << '/' if dir[-1] != '/'
+  end
+  
+  opts.on('-s', '--size [SIZE]', 'Required image size defaults to 960x720') do |size|
+    options[:size] = size
+  end
+  
+  opts.on('-c', '--concurrency [WORKERS]', Integer, 'Number of images to process simultaneously defaults to 5') do |workers|
+    options[:concurrency] = workers
+  end
+  
+  opts.on('-q', '--quiet', 'Silence output') do
+    LOGGER.level = Logger::FATAL
+  end
+  
+  opts.on('-h', '--help', 'Print this message') do
+    puts opts
+    exit
+  end
+end
+optparse.parse!
+
+if options[:target].empty? || options[:destination].empty?
+  puts optparse
+  exit
+end
+
+class Resizer
+  def initialize target, destination, size
+    @target = target
+    @destination = destination
+    @size = size
+  end
+  
+  def run
+    LOGGER.info "Started processing #{@target.split('/').last}"
+    img = Magick::Image.read(@target).first
+    width, height = @size.split('x')
+    @size = "#{height}x#{width}" if img.rows > img.columns
+    destination = "#{@destination}#{@size}_#{@target.split('/').last}"
+    img.change_geometry!(@size) do |cols, rows, image|
+      newimg = img.resize(cols, rows)
+      newimg.write(destination)
+    end
+    LOGGER.info "Finished processing #{destination.split('/').last}"
+  end
+end
+
+pool = XPool.new options[:concurrency]
+
+Dir.glob("#{options[:target]}*.jpg") do |jpg|
+  resizer = Resizer.new jpg, options[:destination], options[:size]
+  pool.schedule resizer
+end
+
+pool.shutdown
+LOGGER.info "Resizing done."
