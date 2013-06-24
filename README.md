@@ -17,13 +17,16 @@
 ### Usage
 
 Download the `batchresize` program to your computer
+
 Download dependencies with:
 
     $ gem install rmagick
     $ gem install xpool
 
 Run `$ chmod +x batchresize` to make the program executable
+
 Run `$ ./batchresize --help` to see a list of options
+
 Profit.
 
 ### LICENSE
