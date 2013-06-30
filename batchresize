@@ -18,23 +18,15 @@ end
 
 
 options = {
-  :target => '',
-  :destination => '',
+  :target => nil,
+  :destination => nil,
   :size => '960x720',
   :concurrency => 5,
   :quality => 80
 }
 
 optparse = OptionParser.new do |opts|
-  opts.on('-t', '--target DIR', 'Source directory that contains jpegs to be converted') do |dir|
-    options[:target] = dir
-    options[:target] << '/' if dir[-1] != '/'
-  end
-  
-  opts.on('-d', '--destination DIR', 'Directory to place images after resizing') do |dir|
-    options[:destination] = dir
-    options[:destination] << '/' if dir[-1] != '/'
-  end
+  opts.banner = "Usage: batchresize sourcedir destinationdir [options]"
   
   opts.on('-s', '--size [SIZE]', 'Required image size defaults to 960x720') do |size|
     options[:size] = size
@@ -59,16 +51,24 @@ optparse = OptionParser.new do |opts|
 end
 optparse.parse!
 
-if options[:target].empty? || options[:destination].empty?
+begin
+  options[:destination] = File.expand_path(Dir.new(ARGV.pop)) << '/'
+  options[:target] = File.expand_path(Dir.new(ARGV.pop)) << '/'
+rescue TypeError => e
   puts optparse
-  exit
+  exit(-1)
+rescue Errno::ENOENT => e
+  puts e.message
+  puts optparse
+  exit(-1)
 end
 
 if !options[:quality].between?(1, 100)
   puts "Invalid quality argument (must be an integer between 1 and 100"
   puts optparse
-  exit
+  exit(-1)
 end
+
 class Resizer
   def initialize target_dir, target_file, destination_dir, size, quality
     @quality = quality
@@ -116,12 +116,15 @@ class Resizer
   end
 end
 
-pool = XPool.new options[:concurrency]
-
-Dir.glob("#{options[:target]}**/*.{jpg,jpeg}", File::FNM_CASEFOLD) do |jpg|
-  resizer = Resizer.new options[:target], jpg, options[:destination], options[:size], options[:quality]
-  pool.schedule resizer
+begin
+  pool = XPool.new options[:concurrency]
+  
+  Dir.glob("#{options[:target]}**/*.{jpg,jpeg}", File::FNM_CASEFOLD) do |jpg|
+    resizer = Resizer.new options[:target], jpg, options[:destination], options[:size], options[:quality]
+    pool.schedule resizer
+  end
+ensure
+  pool.shutdown
 end
 
-pool.shutdown
-LOGGER.info "Resizing done."
+LOGGER.info "Processing done."
