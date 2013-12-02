@@ -20,7 +20,7 @@ end
 options = {
   :target => nil,
   :destination => nil,
-  :size => '960x720',
+  :size => '1920x1440',
   :concurrency => 5,
   :quality => 80
 }
