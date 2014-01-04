@@ -28,15 +28,15 @@ options = {
 optparse = OptionParser.new do |opts|
   opts.banner = "Usage: batchresize sourcedir destinationdir [options]"
   
-  opts.on('-s', '--size [SIZE]', 'Required image size defaults to 960x720') do |size|
+  opts.on('-s', '--size [SIZE]', "Required image size. Defaults to #{options[:size]}") do |size|
     options[:size] = size
   end
   
-  opts.on('-q', '--quality [QUALITY]', Integer, 'Set the image quality from 1 to 100. Defaults to 80') do |quality|
+  opts.on('-q', '--quality [QUALITY]', Integer, "Set the image quality from 1 to 100. Defaults to #{options[:quality]}") do |quality|
     options[:quality] = quality
   end
   
-  opts.on('-c', '--concurrency [WORKERS]', Integer, 'Number of images to process simultaneously. Defaults to 5') do |workers|
+  opts.on('-c', '--concurrency [WORKERS]', Integer, "Number of images to process simultaneously. Defaults to #{options[:concurrency]}") do |workers|
     options[:concurrency] = workers
   end
   
