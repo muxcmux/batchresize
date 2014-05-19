@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 require 'optparse'
 require 'logger'
+require 'fileutils'
 
 LOGGER = Logger.new($stdout)
 LOGGER.formatter = proc do |severity, datetime, progname, msg|
@@ -52,8 +53,14 @@ end
 optparse.parse!
 
 begin
-  options[:destination] = File.expand_path(Dir.new(ARGV.pop)) << '/'
-  options[:target] = File.expand_path(Dir.new(ARGV.pop)) << '/'
+  dest = ARGV.pop
+  source = ARGV.pop
+  if !Dir.exists? dest
+    FileUtils::mkdir_p dest
+    LOGGER.info "Created target directory #{dest}"
+  end
+  options[:destination] = File.expand_path(Dir.new(dest)) << '/'
+  options[:target] = File.expand_path(Dir.new(source)) << '/'
 rescue TypeError => e
   puts optparse
   exit(-1)
