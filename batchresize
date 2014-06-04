@@ -103,10 +103,12 @@ class Resizer
         newimg.write(destination) do
           self.quality = q
         end
+        newimg.destroy!
       end
     rescue Exception => e
       LOGGER.fatal "Failed to create #{destination}. Original message: #{e.message}"
     end
+    img.destroy!
     LOGGER.info "Finished processing: #{@target_file.split('/').last}"
   end
   
